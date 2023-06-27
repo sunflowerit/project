@@ -17,7 +17,8 @@ class HrEmployee(models.Model):
 
     role_ids = fields.One2many("hr.employee.forecast.role", "employee_id")
     main_role_id = fields.Many2one(
-        "forecast.role", compute="_compute_main_role_id", ondelete="restrict"
+        "forecast.role", compute="_compute_main_role_id", ondelete="restrict",
+        compute_sudo=True
     )
 
     def _compute_main_role_id(self):

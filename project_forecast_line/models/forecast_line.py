@@ -307,7 +307,7 @@ class ForecastLine(models.Model):
             resource = self.env["resource.resource"]
             calendar = self.env.company.resource_calendar_id
         for updates in self._split_per_period(
-            date_from, date_to, forecast_hours, unit_cost, resource, calendar
+            date_from, date_to, forecast_hours, unit_cost, resource, calendar, force_granularity= (res_model=='hr.employee')
         ):
             values = common_value_dict.copy()
             values.update(updates)
@@ -332,7 +332,7 @@ class ForecastLine(models.Model):
         return horiz_date_from, horiz_date_to, date_to
 
     def _split_per_period(
-        self, date_from, date_to, forecast_hours, unit_cost, resource, calendar
+        self, date_from, date_to, forecast_hours, unit_cost, resource, calendar, force_granularity=False
     ):
         company = self.env.company
         granularity = company.forecast_line_granularity
@@ -344,7 +344,7 @@ class ForecastLine(models.Model):
         if horiz_date_to <= horiz_date_from:
             return
         whole_period_forecast = self._number_of_hours(
-            horiz_date_from, horiz_date_to, resource, calendar
+            horiz_date_from, horiz_date_to, resource, calendar, force_granularity=force_granularity
         )
         if whole_period_forecast == 0:
             # the resource if completely off during the period -> we cannot

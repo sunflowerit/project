@@ -114,10 +114,9 @@ class HrEmployeeForecastRole(models.Model):
             [
                 ("res_id", "in", self.ids),
                 ("res_model", "=", self._name),
-                ("date_from", "<", today),
             ]
         ).unlink()
-        horizon_end = ForecastLine._company_horizon_end()
+        horiz_date_from, horiz_date_to, date_to = (ForecastLine._compute_horizon(today,ForecastLine._company_horizon_end()))
         for rec in self:
             ForecastLine = ForecastLine.with_company(rec.company_id)
             if rec.date_end:
@@ -126,11 +125,10 @@ class HrEmployeeForecastRole(models.Model):
                     [
                         ("res_id", "=", rec.id),
                         ("res_model", "=", self._name),
-                        ("date_to", ">=", date_end),
                     ]
                 ).unlink()
             else:
-                date_end = horizon_end - relativedelta(days=1)
+                date_end = date_to 
             if leave_date_to is not None:
                 date_end = min(leave_date_to, date_end)
             date_start = max(rec.date_start, today)
@@ -140,7 +138,7 @@ class HrEmployeeForecastRole(models.Model):
             calendar = resource.calendar_id
 
             forecast = ForecastLine._number_of_hours(
-                date_start, date_end, resource, calendar, force_granularity=True
+                date_start, date_end - relativedelta(days=1), resource, calendar, force_granularity=False
             )
             forecast_lines = ForecastLine.search(
                 [

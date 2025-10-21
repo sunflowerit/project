@@ -30,4 +30,20 @@ class SaleOrder(models.Model):
             self.env["forecast.line"].sudo().search(
                 [("sale_id", "in", self.ids)]
             ).write({"project_id": values["project_id"]})
+        if self and "default_forecast_date_start" in values or "default_forecast_date_end" in values:
+            for sol in self.mapped("order_line"):
+                update_forecast = False
+                if not sol.forecast_date_start:
+                    sol.write({
+                    "forecast_date_start": values.get(
+                        "default_forecast_date_start"
+                    )})
+                    update_forecast = True
+                if not sol.forecast_date_end:
+                    sol.write({
+                        "forecast_date_end": values.get("default_forecast_date_end"),
+                    })
+                    update_forecast = True
+                if update_forecast:
+                    sol._update_forecast_lines()
         return res

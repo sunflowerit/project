@@ -30,7 +30,9 @@ class ProjectTask(models.Model):
             if vals.get("planned_date_end"):
                 vals["forecast_date_planned_end"] = vals["planned_date_end"]
         tasks = super().create(vals_list)
-        # tasks._update_forecast_lines()
+        for i,task in enumerate(tasks):
+            if set(vals_list[i]) & set(self._update_forecast_lines_trigger_fields()):
+                task._update_forecast_lines()
         return tasks
 
     def _update_forecast_lines_trigger_fields(self):
@@ -59,13 +61,30 @@ class ProjectTask(models.Model):
             values["forecast_date_planned_start"] = values["planned_date_begin"]
         if "planned_date_end" in values:
             values["forecast_date_planned_end"] = values["planned_date_end"]
-        return super().write(values)
 
-    def _write(self, values):
-        res = super()._write(values)
-        if "forecast_recomputation_trigger" in values:
+        res = super().write(values)
+        if set(values.keys()) & {
+            # "sale_order_line_id",
+            "forecast_role_id",
+            "forecast_date_planned_start",
+            "forecast_date_planned_end",
+            # "remaining_hours",
+            "name",
+            # "planned_time",
+            "user_ids",
+            "project_id.stage_id",
+            "project_id.stage_id.forecast_line_type",
+            "planned_hours"
+        }:
             self._update_forecast_lines()
         elif "remaining_hours" in values:
+            self._quick_update_forecast_lines()
+        return res
+    def _write(self, values):
+        res = super()._write(values)
+        """if "forecast_recomputation_trigger" in values:
+            self._update_forecast_lines()"""
+        if "remaining_hours" in values:
             self._quick_update_forecast_lines()
         return res
 

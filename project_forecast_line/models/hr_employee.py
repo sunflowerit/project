@@ -91,10 +91,10 @@ class HrEmployeeForecastRole(models.Model):
 
     def write(self, values):
         res = super().write(values)
-        self._update_forecast_lines(force_granularity=True)
+        self._update_forecast_lines()
         return res
 
-    def _update_forecast_lines(self, force_granularity=False):
+    def _update_forecast_lines(self):
         today = fields.Date.context_today(self)
         leave_date_start = self.env.context.get("date_start")
         leave_date_to = self.env.context.get("date_to")
@@ -114,9 +114,10 @@ class HrEmployeeForecastRole(models.Model):
             [
                 ("res_id", "in", self.ids),
                 ("res_model", "=", self._name),
+                ("date_from", "<", today),
             ]
         ).unlink()
-        horiz_date_from, horiz_date_to, date_to = (ForecastLine._compute_horizon(today,ForecastLine._company_horizon_end()))
+        horizon_end = ForecastLine._company_horizon_end()
         for rec in self:
             ForecastLine = ForecastLine.with_company(rec.company_id)
             if rec.date_end:
@@ -125,10 +126,11 @@ class HrEmployeeForecastRole(models.Model):
                     [
                         ("res_id", "=", rec.id),
                         ("res_model", "=", self._name),
+                        ("date_to", ">=", date_end),
                     ]
                 ).unlink()
             else:
-                date_end = date_to
+                date_end = horizon_end - relativedelta(days=1)
             if leave_date_to is not None:
                 date_end = min(leave_date_to, date_end)
             date_start = max(rec.date_start, today)
@@ -138,7 +140,7 @@ class HrEmployeeForecastRole(models.Model):
             calendar = resource.calendar_id
 
             forecast = ForecastLine._number_of_hours(
-                date_start, date_end - relativedelta(days=1), resource, calendar, force_granularity=force_granularity
+                date_start, date_end, resource, calendar, force_granularity=True
             )
             forecast_lines = ForecastLine.search(
                 [
